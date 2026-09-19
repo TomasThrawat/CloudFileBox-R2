@@ -1,12 +1,13 @@
 package com.tomasthrawat.cloudfileboxr2
 
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.InputStream
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
@@ -16,7 +17,7 @@ class CloudApi {
     private val baseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS)
         .writeTimeout(0, TimeUnit.MILLISECONDS)
         .build()
 
@@ -48,20 +49,29 @@ class CloudApi {
         }
     }
 
-    fun upload(file: File, key: String, contentType: String): Long {
+    fun upload(input: InputStream, size: Long, key: String, contentType: String): Long {
         val url = sign("put", key, contentType)
-        val response = client.newCall(
-            Request.Builder().url(url).put(file.asRequestBody(contentType.toMediaType())).build()
-        ).execute()
-        response.use { check(it.isSuccessful) { "Upload failed: HTTP " + it.code } }
-        return file.length()
+        val body = object : RequestBody() {
+            override fun contentType() = contentType.toMediaType()
+            override fun contentLength() = size
+            override fun isOneShot() = true
+            override fun writeTo(sink: okio.BufferedSink) {
+                input.use { source -> source.copyTo(sink.outputStream(), 1024 * 1024) }
+            }
+        }
+        client.newCall(Request.Builder().url(url).put(body).build()).execute().use { response ->
+            check(response.isSuccessful) { "Upload failed: HTTP " + response.code }
+        }
+        return size
     }
 
     fun download(key: String, target: File): Long {
         val url = sign("get", key, "application/octet-stream")
         client.newCall(Request.Builder().url(url).get().build()).execute().use { response ->
             check(response.isSuccessful) { "Download failed: HTTP " + response.code }
-            target.outputStream().use { out -> response.body.byteStream().use { input -> input.copyTo(out, 1024 * 1024) } }
+            target.outputStream().use { out ->
+                response.body.byteStream().use { input -> input.copyTo(out, 1024 * 1024) }
+            }
         }
         return target.length()
     }

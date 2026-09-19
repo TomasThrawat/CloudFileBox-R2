@@ -1,13 +1,18 @@
 # CloudFileBox R2 Worker
 
-The Worker keeps R2 credentials server-side and creates short-lived presigned URLs for the Android client. Cloudflare documents this pattern for mobile uploads.
+The Worker validates the app key and creates short-lived S3-compatible presigned URLs for Cloudflare R2.
 
-Setup:
-1. Create an R2 bucket.
-2. Replace REPLACE_WITH_YOUR_BUCKET in wrangler.jsonc and src/index.ts.
-3. Run npm install.
-4. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and APP_KEY with wrangler secrets.
-5. Run npm run deploy.
-6. Put the Worker URL and the same APP_KEY into the Android BuildConfig.
+## Setup
 
-Never put R2 secret credentials in the Android APK.
+1. Create an R2 bucket in Cloudflare.
+2. Set the bucket name with Wrangler:
+   `wrangler secret put R2_BUCKET_NAME`
+3. Set these secrets:
+   - `R2_ACCOUNT_ID`
+   - `R2_ACCESS_KEY_ID`
+   - `R2_SECRET_ACCESS_KEY`
+   - `APP_KEY`
+4. Run `npm install` and `npm run deploy`.
+5. Put the deployed Worker URL and the same app key into the Android app's BuildConfig.
+
+The Android app does not persist diagnostic or logging files.

@@ -7,6 +7,8 @@ interface Env {
   APP_KEY: string;
 }
 
+const BUCKET_NAME = "REPLACE_WITH_YOUR_BUCKET";
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "X-App-Key, Content-Type",
@@ -14,7 +16,10 @@ const cors = {
 };
 
 const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" }
+  });
 
 const authorized = (request: Request, env: Env) =>
   request.headers.get("X-App-Key") === env.APP_KEY;
@@ -27,7 +32,8 @@ const client = (env: Env) => new AwsClient({
 });
 
 const endpoint = (env: Env, key = "") =>
-  "https://" + env.R2_ACCOUNT_ID + ".r2.cloudflarestorage.com/REPLACE_WITH_YOUR_BUCKET/" +
+  "https://" + env.R2_ACCOUNT_ID + ".r2.cloudflarestorage.com/" +
+  BUCKET_NAME + "/" +
   key.split("/").map(encodeURIComponent).join("/");
 
 export default {
@@ -53,13 +59,18 @@ export default {
     if (url.pathname === "/api/sign") {
       const op = url.searchParams.get("op");
       const key = url.searchParams.get("key");
-      if (!key || !["put", "get", "delete"].includes(op ?? "")) return json({ error: "Invalid request" }, 400);
-      const method = op === "put" ? "PUT" : op === "get" ? "GET" : "DELETE";
+      if (!key || !["put", "get", "delete"].includes(op ?? "")) {
+        return json({ error: "Invalid request" }, 400);
+      }
       const contentType = url.searchParams.get("contentType") || "application/octet-stream";
+      const method = op === "put" ? "PUT" : op === "get" ? "GET" : "DELETE";
       const target = new URL(endpoint(env, key));
       target.searchParams.set("X-Amz-Expires", "3600");
       const signed = await client(env).sign(
-        new Request(target, { method, headers: method === "PUT" ? { "Content-Type": contentType } : undefined }),
+        new Request(target, {
+          method,
+          headers: method === "PUT" ? { "Content-Type": contentType } : undefined
+        }),
         { aws: { signQuery: true } }
       );
       return json({ url: signed.url.toString() });

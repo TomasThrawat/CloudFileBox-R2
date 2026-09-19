@@ -9,7 +9,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tomastharwat.cloudfileboxr2"
+        applicationId = "com.tomasharwat.cloudfileboxr2"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -22,6 +22,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {

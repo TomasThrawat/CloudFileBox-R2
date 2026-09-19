@@ -4,10 +4,9 @@ interface Env {
   R2_ACCOUNT_ID: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
+  R2_BUCKET_NAME: string;
   APP_KEY: string;
 }
-
-const BUCKET_NAME = "REPLACE_WITH_YOUR_BUCKET";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -33,7 +32,7 @@ const client = (env: Env) => new AwsClient({
 
 const endpoint = (env: Env, key = "") =>
   "https://" + env.R2_ACCOUNT_ID + ".r2.cloudflarestorage.com/" +
-  BUCKET_NAME + "/" +
+  env.R2_BUCKET_NAME + "/" +
   key.split("/").map(encodeURIComponent).join("/");
 
 export default {
@@ -50,9 +49,11 @@ export default {
       );
       const response = await fetch(signed.url);
       if (!response.ok) return json({ error: "R2 list failed" }, 502);
+
       const xml = await response.text();
-      const objects = [...xml.matchAll(/<Contents>[\s\S]*?<Key>([^<]+)<\/Key>[\s\S]*?<Size>(\d+)<\/Size>[\s\S]*?<LastModified>([^<]+)<\/LastModified>[\s\S]*?<\/Contents>/g)]
+      const objects = [...xml.matchAll(/<Contents>[sS]*?<Key>([^<]*)<\/Key>[\s\S]*?<Size>(\d+)<\/Size>[\s\S]*?<LastModified>([^<]*)<\/LastModified>[\s\S]*?<\/Contents>/g)]
         .map(m => ({ key: m[1], size: Number(m[2]), updated: m[3] }));
+
       return json(objects);
     }
 
@@ -62,10 +63,13 @@ export default {
       if (!key || !["put", "get", "delete"].includes(op ?? "")) {
         return json({ error: "Invalid request" }, 400);
       }
-      const contentType = url.searchParams.get("contentType") || "application/octet-stream";
+
+      const contentType =
+        url.searchParams.get("contentType") || "application/octet-stream";
       const method = op === "put" ? "PUT" : op === "get" ? "GET" : "DELETE";
       const target = new URL(endpoint(env, key));
       target.searchParams.set("X-Amz-Expires", "3600");
+
       const signed = await client(env).sign(
         new Request(target, {
           method,
@@ -73,6 +77,7 @@ export default {
         }),
         { aws: { signQuery: true } }
       );
+
       return json({ url: signed.url.toString() });
     }
 

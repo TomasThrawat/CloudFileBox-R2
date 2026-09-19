@@ -9,14 +9,14 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tomasharwat.cloudfileboxr2"
+        applicationId = "com.tomastharwat.cloudfileboxr2"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "API_BASE_URL", ""https://example.invalid"")
-        buildConfigField("String", "APP_KEY", ""configure-me"")
+        buildConfigField("String", "API_BASE_URL", "\"https://example.invalid\"")
+        buildConfigField("String", "APP_KEY", "\"configure-me\"")
     }
 
     buildFeatures {

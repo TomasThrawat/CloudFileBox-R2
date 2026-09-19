@@ -68,7 +68,7 @@ private fun CloudFileBoxScreen() {
                             requireNotNull(input).copyTo(temp.outputStream())
                         }
                         val type = context.contentResolver.getType(uri) ?: "application/octet-stream"
-                        api.upload(temp, name, type)
+                        api.upload(temp.inputStream(), temp.length(), name, type)
                         temp.delete()
                     }
                 }
